@@ -1,0 +1,213 @@
+#!/usr/local/bin/node
+
+/**
+ * Automates adding, committing, and pushing of tracked project files.
+ * Note that files that have yet to be tracked by git will not be affected
+ * by this script.
+ * @author juanvallejo
+ */
+
+// import dependencies
+var exec = require('child_process').exec;
+
+var BRANCH = 'master';
+var COMMIT_MESSAGE = null;
+
+// begin by fetching name of current branch
+exec('git branch', function(err, stdout, stderr) {
+
+	if(err) {
+		console.error('ERROR', err);
+		return process.exit(1);
+	}
+
+	var branchName = stdout.toString().replace(/(^.\ )/gi, '');
+
+	BRANCH 			= branchName.substring(0, branchName.length - 1);
+	COMMIT_MESSAGE 	= process.argv[2] || COMMIT_MESSAGE;
+
+	pub_checkModFiles();
+
+});
+
+// check that there is at least one file modified
+// since last commit. If no files, don't bother
+// continuing script.
+function pub_checkModFiles() {
+
+	exec('git diff --name-only', function(err, stdout, stderr) {
+
+		if(err) {
+			console.error('ERROR', err);
+			return process.exit(1);
+		}
+
+		var filesToStage = stdout.toString().split('\n');
+
+		// remove empty string at end of array
+		filesToStage.pop();
+
+		// fetch all staged tracked files
+		exec('git diff --name-only --staged', function(err, stdout, stderr) {
+
+			if(err) {
+				console.error('ERROR', err);
+				return process.exit(1);
+			}
+
+			var stagedFiles = stdout.toString().split('\n');
+			stagedFiles.pop();
+
+			// add changed staged files to list
+			for(var  i = 0; i < stagedFiles.length; i++) {
+				filesToStage.push(stagedFiles[i]);
+			}
+
+			// if no tracked files have changed since last commit
+			// skip to pushing step
+			if(!filesToStage.length) {
+				console.log('No files were found for staging, skipping to push.');
+				return pub_pushFiles(filesToStage);
+			}
+
+			pub_stageModFiles(filesToStage);
+
+		});
+
+	});
+
+}
+
+// receives an array of files that have changed since last commit
+// and stages them for committing
+function pub_stageModFiles(filesToStage) {
+
+	console.log('Staging project files...');
+
+	exec('git add -u', function(err, stdout, stderr) {
+
+		if(err) {
+			console.error('ERROR', err);
+			return process.exit(1);
+		}
+
+		pub_commitModFiles(filesToStage);
+
+	});
+
+}
+
+
+function pub_commitModFiles(filesToCommit) {
+
+	if(!COMMIT_MESSAGE) {
+		console.error('ERROR', 'A commit message must be provided.');
+		return process.exit(1);
+	}
+
+	console.log('Committing project files...');
+
+	exec('git commit -m "' + COMMIT_MESSAGE + '"', function(err, stdout, stderr) {
+
+		if(err) {
+			console.error('ERROR', err);
+			return process.exit(1);
+		}
+
+		pub_pushFiles(filesToCommit);
+
+	});
+
+}
+
+// perform a git push on files that have been added and committed
+function pub_pushFiles(filesToPush) {
+
+	console.log('Attempting to push project files to origin/' + BRANCH + '...');
+
+	exec('git push origin ' + BRANCH, function(err, stdout, stderr) {
+
+		if(err) {
+
+			var error = err.toString().split('\n');
+
+			if(error[2].match(/(\(fetch\ first\))$/gi)) {
+				console.log('Fetch from remote needed first:');
+				return pub_fetchFiles(filesToPush);
+			}
+
+			console.log('ERROR', err);
+			return process.exit(1);
+		}		
+
+		// advertise all files that have been pushed since last commit
+		pub_getCommittedFilenames(function(files) {
+			
+			if(files.length) {
+
+				// if output is this message, it means the push was not necessary
+				if(stdout.toString() == '') {
+					console.log('Your project is currently published and up to date! Last files pushed:\n');
+				} else {
+					console.log('Done! The following files have been successfully deployed:\n');
+				}
+
+				for(var i = 0; i < files.length; i++) {
+					console.log('\t', files[i]);
+				}
+
+				console.log('');
+
+			} else {
+				console.log('Your project is currently published and up to date!');
+			}
+
+			process.exit(0);
+
+		});
+
+			
+
+	});
+
+}
+
+// fetch and merge files from remote repository
+function pub_fetchFiles(filesToPush) {
+
+	console.log('Pulling from origin/' + BRANCH + '...');
+
+	exec('git pull origin ' + BRANCH, function(err, stdout, stderr) {
+
+		if(err) {
+			console.error('ERROR', err);
+			return process.exit(1);
+		}
+
+		// if we've made it this far, all is good, attempt to push once again
+		pub_pushFiles(filesToPush);
+
+	});
+
+}
+
+// returns an array of files that have been pushed since the last commit
+function pub_getCommittedFilenames(callback) {
+
+	exec('git show --pretty="format:" --name-only HEAD^', function(err, stdout, stderr) {
+
+		if(err) {
+			console.error('ERROR', err);
+			return process.exit(1);
+		}
+
+		var files = stdout.toString().split('\n');
+		files.pop();
+
+		if(typeof callback == 'function') {
+			callback.call(this, files);
+		}
+
+	});	
+
+}
