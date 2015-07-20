@@ -147,7 +147,7 @@ function pub_pushFiles(filesToPush) {
 
 				// if output is this message, it means the push was not necessary
 				if(stdout.toString() == '') {
-					console.log('Your project is currently published and up to date! Last files pushed:\n');
+					console.log('Your project is currently published and up to date! Files pushed since last commit:\n');
 				} else {
 					console.log('Done! The following files have been successfully deployed:\n');
 				}
