@@ -131,7 +131,7 @@ function pub_pushFiles(filesToPush) {
 
 			var error = err.toString().split('\n');
 
-			if(error[2].match(/(\(fetch\ first\))$/gi)) {
+			if(error[2].match(/(\((fetch\ first | non\-fast\-forward)\))$/gi)) {
 				console.log('Fetch from remote needed first:');
 				return pub_fetchFiles(filesToPush);
 			}
