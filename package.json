@@ -1,0 +1,25 @@
+{
+  "name": "gulp-publish",
+  "version": "1.0.0",
+  "description": "gulp-publish",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanBJV/gulp-publish.git"
+  },
+  "keywords": [
+    "publish"
+  ],
+  "author": "juanvallejo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/juanBJV/gulp-publish/issues"
+  },
+  "homepage": "https://github.com/juanBJV/gulp-publish#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0"
+  }
+}
