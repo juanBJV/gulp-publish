@@ -153,7 +153,9 @@ function pub_pushFiles(filesToPush) {
 				}
 
 				for(var i = 0; i < files.length; i++) {
-					filesToPush.push(files[i]);
+					if(filesToPush.indexOf(files[i]) == -1) {
+						filesToPush.push(files[i]);
+					}
 				}
 
 				for(var i = 0; i < filesToPush.length; i++) {
